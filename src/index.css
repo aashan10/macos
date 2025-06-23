@@ -1,0 +1,37 @@
+@import "tailwindcss" source('./');
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+.full-screen {
+    @apply w-screen h-screen;
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 5px;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.dark ::-webkit-scrollbar-track {
+    background: transparent;
+}
+.dark ::-webkit-scrollbar-thumb {
+    background: #555;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
