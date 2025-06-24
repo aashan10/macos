@@ -7,13 +7,9 @@ import { ThemeSwitcher } from "./theme-switcher";
 import { ToolbarItem, type ToolbarItemProps } from "./toolbar/item";
 
 export const Toolbar = () => {
-    const { windows, focusedWindow, closeWindow, createWindow } = useWindowManager();
+    const { closeWindow, createWindow, activeWindow } = useWindowManager();
     const { getPreference } = usePreferences();
 
-
-    const activeWindow = createMemo(() => {
-        return windows().filter(win => win.id === focusedWindow())[0] || null;
-    });
 
     const theme = createMemo(() => getPreference("theme") || "light");
 
@@ -42,22 +38,24 @@ export const Toolbar = () => {
             ]
         }];
 
-        if (activeWindow()) {
+        const active = activeWindow();
+
+        if (active) {
             items.push({
-                name: <span class="font-semibold">{activeWindow().title}</span>,
+                name: <span class="font-semibold">{active.title}</span>,
                 children: [
                     {
                         name: 'Quit',
-                        onClick: () => closeWindow(activeWindow().id),
+                        onClick: () => closeWindow(active.id),
                     },
                     {
                         name: 'Force Quit',
                         onClick: () => {
-                            windows().forEach(win => {
-                                if (win.title === activeWindow().title) {
-                                    closeWindow(win.id);
+                            window.dispatchEvent(new CustomEvent('force-quit-window', {
+                                detail: {
+                                    title: active.title,
                                 }
-                            });
+                            }))
                         },
                     }
                 ]
@@ -68,7 +66,7 @@ export const Toolbar = () => {
                 children: [
                     {
                         name: 'New Window',
-                        onClick: () => createWindow(activeWindow().title, 400, 100, 800, 600, activeWindow().children),
+                        onClick: () => createWindow(active.title, 400, 100, 800, 600, active.children),
                     },
                     {
                         name: 'New Tab',
@@ -76,7 +74,7 @@ export const Toolbar = () => {
                     },
                     {
                         name: 'Close Window',
-                        onClick: () => closeWindow(activeWindow().id),
+                        onClick: () => closeWindow(active.id),
                     }
                 ]
             });

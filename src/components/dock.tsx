@@ -1,15 +1,21 @@
-import { For } from "solid-js";
+import { For, Show, createMemo, } from "solid-js";
 import { useWindowManager, type WindowState } from "../hooks/window-manager";
-import { Preferences } from "./preferences";
-import { Safari } from "./apps/safari";
 import { Tooltip } from "./utils/tooltip";
+import { AppRegistry, getAppIcon, launchApp, type AppInfo } from "./apps/registry";
+
 
 export const Dock = () => {
 
-    const { windows, focusWindow, createWindow } = useWindowManager();
+    const { windows, focusWindow, createWindow, inactiveWindows } = useWindowManager();
 
     const findWindowByName = (name: string) => {
-        return windows().find(win => win.title === name);
+        const windowList = windows;
+        for (const win of Object.values(windowList)) {
+            if (win.title === name) {
+                return win;
+            }
+        }
+        return null;
     }
 
     const createOrFocusExistingWindow = (name: string, props: WindowState) => {
@@ -21,52 +27,42 @@ export const Dock = () => {
         }
     }
 
-    const dockItems = [
-        {
-            name: 'Finder', icon: './dock/finder.svg', onClick: () => { },
-        },
-        {
-            name: 'Safari', icon: './dock/safari.svg', onClick: () => {
-                createOrFocusExistingWindow('Safari', {
-                    id: 'safari-window', // this won't be used regardless, but I'm too lazy to change the type
-                    title: 'Safari',
-                    x: 100,
-                    y: 100,
-                    width: 800,
-                    height: 600,
-                    children: [<Safari />],
-                    zIndex: 1000, // Assuming a default zIndex
-                });
-            }
-        },
-        {
-            name: 'System Preferences', icon: './dock/syspref.svg', onClick: () => {
-                createOrFocusExistingWindow('System Preferences', {
-                    id: 'system-preferences-window',
-                    title: 'System Preferences',
-                    x: 400,
-                    y: 100,
-                    width: 900,
-                    height: 800,
-                    children: [<Preferences />],
-                    zIndex: 1000, // Assuming a default zIndex
-                });
-            }
-        },
-        { name: 'divider' },
-        {
-            name: 'Siri', icon: './dock/siri.svg', onClick: () => { }
-        },
-        {
-            name: 'Trash', icon: './dock/trash.svg', onClick: () => { }
-        }
+    const dockItems: Array<AppInfo & { onClick: () => void; isOpen?: boolean } | string> = [
+        { ...AppRegistry['Finder'], onClick: () => launchApp('Finder') },
+        { ...AppRegistry['Safari'], onClick: () => launchApp('Safari') },
+        { ...AppRegistry['Preferences'], onClick: () => launchApp('Preferences') },
+        'divider',
+        // { ...AppRegistry['Siri'], onClick: () => launchApp('Siri') },
+        { ...AppRegistry['Trash'], onClick: () => launchApp('Trash') },
     ];
+
+
+    const getDockItems = createMemo(() => {
+        let items = [...dockItems];
+
+        const openButInactive: Record<string, WindowState> = inactiveWindows();
+
+        for (const [_, win] of Object.entries(openButInactive)) {
+            items.push({
+                name: win.title,
+                icon: getAppIcon(win.title),
+                onClick: () => createOrFocusExistingWindow(win.title, win),
+                isOpen: true,
+                component: win.children
+            });
+        }
+
+
+
+        return items;
+    });
+
 
     return (
         <div class="dock fixed bottom-2 w-full h-16 z-[10000] flex flex-row items-center justify-center">
             <div class="h-16 bg-stone-200/50 dark:bg-stone-900/50 gap-3 backdrop-blur-2xl  rounded-2xl p-4 shadow-lg z-[10000] flex flex-row items-center">
-                <For each={dockItems}>
-                    {(item) => item.name === 'divider' ? (
+                <For each={getDockItems()}>
+                    {(item) => typeof item === 'string' ? (
                         <span class="h-10 w-2 border-r border-stone-200/50 dark:border-stone-900/50 mr-3" />
                     ) : (
                         <Tooltip content={item.name}>
@@ -74,6 +70,9 @@ export const Dock = () => {
                                 onClick={item.onClick}
                                 style={{ 'background-image': `url('${item.icon}')` }}
                             />
+                            <Show when={item.isOpen || false}>
+                                <span class="absolute bottom-0 left-0 w-full h-1 bg-blue-500 rounded-b-lg" />
+                            </Show>
                         </Tooltip>
 
                     )}

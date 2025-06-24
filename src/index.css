@@ -2,6 +2,11 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+
+@theme {
+    --color-blue-700: oklch(0.4958 0.1989 259.77);
+}
+
 .full-screen {
     @apply w-screen h-screen;
 }

@@ -1,4 +1,4 @@
-import { createMemo, createSignal, onCleanup } from "solid-js";
+import { createMemo, createSignal, onCleanup, Suspense } from "solid-js";
 import type { WindowState } from "../hooks/window-manager";
 
 type WindowProps = WindowState & {
@@ -158,7 +158,7 @@ export const Window = (props: WindowProps) => {
     }
 
     return (
-        <div onMouseDown={() => { !isWindowFocused() && onBringToFront(id) }} class="absolute overflow-hidden window bg-[rgba(255,255,255,1)] dark:bg-[rgba(0,0,0,1)] rounded-xl flex flex-col shadow-lg border border-stone-300 dark:border-stone-700"
+        <div onMouseDown={() => { !isWindowFocused() && onBringToFront(id) }} class="absolute overflow-hidden window rounded-xl flex flex-col shadow-md/30 "
             style={{
                 left: `${position().x}px`,
                 top: `${position().y}px`,
@@ -167,18 +167,27 @@ export const Window = (props: WindowProps) => {
                 'z-index': zIndex,
             }}>
             {/* Title bar - Drag Handle */}
-            <div class="p-2 flex flex-row items-center gap-5 bg-stone-200 dark:bg-stone-800 rounded-t-xl">
+            <div class="p-2 flex flex-row items-center gap-5 rounded-t-xl" style={{ 'z-index': zIndex + 1 }}>
                 <div class="flex gap-1">
                     <button style={{ 'z-index': zIndex + 2 }} class={`h-3 w-3 rounded-full ${isWindowFocused() ? 'bg-red-500' : 'bg-stone-500'}`} onMouseDown={close}></button>
-                    <button style={{ 'z-index': zIndex + 2 }} class={`h-3 w-3 rounded-full ${isWindowFocused() ? 'bg-yellow-500' : 'bg-stone-500'}`}></button>
-                    <button style={{ 'z-index': zIndex + 2 }} class={`h-3 w-3 rounded-full ${isWindowFocused() ? 'bg-green-500' : 'bg-stone-500'}`}></button>
+                    <button style={{ 'z-index': zIndex + 2 }} class={`h-3 w-3 rounded-full ${isWindowFocused() ? 'bg-yellow-500' : 'bg-stone-500'}`} onMouseDown={() => window.dispatchEvent(new CustomEvent('minimize-window', {
+                        detail: { id: props.id }
+                    }))}></button>
+                    <button style={{ 'z-index': zIndex + 2 }} class={`h-3 w-3 rounded-full ${isWindowFocused() ? 'bg-green-500' : 'bg-stone-500'}`} onMouseDown={() => window.dispatchEvent(new CustomEvent('maximize-window', {
+                        detail: { id: props.id }
+                    }))}></button>
                 </div>
-                <div onMouseDown={(e) => handleMouseDown(e, InteractionType.Dragging)} class="w-full cursor-move flex flex-row min-h-4">
+                <div style={{ 'z-index': zIndex + 5 }} onDblClick={() => {
+
+                    window.dispatchEvent(new CustomEvent('maximize-window', {
+                        detail: { id: props.id }
+                    }));
+                }} onMouseDown={(e) => handleMouseDown(e, InteractionType.Dragging)} class="w-full bg-transparent flex flex-row min-h-4">
 
                 </div>
             </div>
 
-            <div class="flex-grow bg-stone-50 dark:bg-zinc-700 flex flex-col p-2 overflow-auto h-full w-full">
+            <div class="flex flex-col overflow-hidden h-full w-full">
                 {children}
             </div>
 

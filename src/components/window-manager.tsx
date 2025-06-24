@@ -4,25 +4,25 @@ import { Window } from "./window";
 
 const WindowManager = () => {
 
-    const { windows, closeWindow, setWindowProperty, focusWindow, isFocused } = useWindowManager();
+    const { activeWindowsArray, closeWindow, setWindowProperty, focusWindow, isFocused } = useWindowManager();
 
     return (
-        <div class="window-manager overflow-hidden">
-            <For each={windows()}>
-                {(window) => (
+        <div class="win.manager overflow-hidden">
+            <For each={activeWindowsArray()}>
+                {(win) => (
                     <Window
-                        id={window.id}
-                        title={window.title}
-                        x={window.x}
-                        y={window.y}
-                        width={window.width}
-                        height={window.height}
-                        zIndex={window.zIndex}
-                        onClose={closeWindow}
+                        id={win.id}
+                        title={win.title}
+                        x={win.maximized ? 0 : win.x}
+                        y={win.maximized ? 0 : win.y}
+                        width={win.maximized ? window.innerWidth : win.width}
+                        height={win.maximized ? window.innerHeight : win.height}
+                        zIndex={win.zIndex}
+                        onClose={() => closeWindow(win.id)}
                         isFocused={isFocused}
-                        children={window.children}
-                        onSetProperty={(property, value) => setWindowProperty(window.id, property, value)}
-                        onBringToFront={() => focusWindow(window.id)} />
+                        children={win.children}
+                        onSetProperty={(property, value) => setWindowProperty(win.id, property, value)}
+                        onBringToFront={() => focusWindow(win.id)} />
                 )}
             </For>
 

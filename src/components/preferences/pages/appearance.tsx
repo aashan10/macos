@@ -13,13 +13,13 @@ export const AppearancePreferences = () => {
     ];
 
     return (
-        <div class="w-full bg-stone-100 dark:bg-stone-800 dark:text-stone-50 p-4 rounded-2xl border dark:border-stone-900 border-stone-200 flex flex-row items-start">
-            <h1 class="flex w-1/2 font-semibold">Appearance</h1>
+        <div class="w-full bg-stone-100 dark:bg-stone-900 border border-stone-200 dark:border-stone-950 dark:text-stone-50 text-stone-800 dark:text-stone-400 p-4 rounded-xl border dark:border-stone-900 border-stone-200 flex flex-row items-start">
+            <h1 class="flex w-1/2 text-sm font-semibold dark:text-stone-400">Appearance</h1>
 
             <div class="flex w-1/2 flex-row gap-4 justify-end">
                 <For each={themes}>
                     {(item) => (
-                        <button class={`flex flex-col gap-1`} onClick={() => setPreference("theme", item.value)}>
+                        <button class={`flex flex-col gap-2`} onClick={() => setPreference("theme", item.value)}>
                             <img src={item.icon} class={`rounded h-[40px] ${theme() === item.value ? 'ring ring-blue-700 ring-2' : ''}`} />
                             <span class="text-xs">{item.name}</span>
                         </button>
