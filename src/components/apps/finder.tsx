@@ -48,8 +48,8 @@ export const Finder = () => {
     ];
 
     const files: Record<number, any> = {
-        0: { name: "Photos", kind: "folder", preview: '../../../public/apps/finder.svg' },
-        1: { name: "myprofilepic.jpg", kind: "file", preview: '../../../public/pfp/pfp.jpg', type: 'image' },
+        0: { name: "Photos", kind: "folder", preview: './apps/finder.svg' },
+        1: { name: "myprofilepic.jpg", kind: "file", preview: './pfp/pfp.jpg', type: 'image' },
     };
 
     const activeItem = createMemo(() => {
