@@ -1,5 +1,4 @@
 import { createSignal } from "solid-js"
-import { TwoPanelLayout } from "../layouts/two-panel";
 import { SinglePanelLayout } from "../layouts/single-panel";
 
 export const Safari = () => {

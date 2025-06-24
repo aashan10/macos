@@ -1,4 +1,4 @@
-import { createMemo, createSignal, onCleanup, Suspense } from "solid-js";
+import { createMemo, createSignal, onCleanup } from "solid-js";
 import type { WindowState } from "../hooks/window-manager";
 
 type WindowProps = WindowState & {
