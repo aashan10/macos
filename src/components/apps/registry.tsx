@@ -1,15 +1,26 @@
-import type { JSXElement } from "solid-js";
+import { createMemo, type JSXElement } from "solid-js";
 import { Finder } from "./finder";
 import { Safari } from "./safari";
 import { Preferences } from "../preferences";
 import { useWindowManager } from "../../hooks/window-manager";
+import { SinglePanelLayout } from "../layouts/single-panel";
 
 export type AppInfo = {
     name: string;
     icon: string;
     description?: string;
     component: JSXElement;
+    windowConfig?: {
+        height?: number;
+        width?: number;
+        x?: number;
+        y?: number;
+    }
 }
+
+const _2048 = () => createMemo(() => {
+    return <iframe src="https://funhtml5games.com?embed=2048bit" style="width:530px;height:690px;border:none;" frameborder="0" scrolling="no"></iframe>;
+});
 
 export const AppRegistry: Record<string, AppInfo> = {
     "Finder": {
@@ -41,6 +52,16 @@ export const AppRegistry: Record<string, AppInfo> = {
         icon: "./apps/trash.svg",
         description: "The trash can for deleted files.",
         component: "Trash"
+    },
+    "2048": {
+        name: "2048",
+        icon: "./apps/2048.svg",
+        description: "A simple 2048 game.",
+        component: <SinglePanelLayout content={[_2048()]} />,
+        windowConfig: {
+            height: 800,
+            width: 565
+        }
     }
 };
 
@@ -63,15 +84,8 @@ export const getAppComponent = (name: string): JSXElement => {
     return app ? app.component : "Not found";
 }
 
-export const launchApp = (name: string) => {
+export const launchApp = (app: AppInfo) => {
     const { windows, createWindow, focusWindow } = useWindowManager();
-
-    const app = getAppInfo(name);
-
-    if (!app) {
-        console.error(`App ${name} not found in registry.`);
-        return;
-    }
 
     const existingWindow = Object.values(windows).find(win => win.title === app.name);
 
@@ -80,23 +94,15 @@ export const launchApp = (name: string) => {
         return;
     }
 
-    createWindow(
-        app.name,
-        prevWinPos.x, // x position
-        prevWinPos.y, // y position
-        800, // width
-        600, // height
-        [app.component], // children
-        app.icon
-    );
+    const windowProps = {
+        title: app.name,
+        x: app.windowConfig?.x ?? prevWinPos.x, // x position
+        y: app.windowConfig?.y ?? prevWinPos.y, // y position
+        width: app.windowConfig?.width ?? 800, // innerWidth
+        height: app.windowConfig?.height ?? 600, // innerHeight
+        children: app.component, // children
+        icon: app.icon, // icon
+    };
 
-    prevWinPos.x += 20; // Increment x position for next app 
-    prevWinPos.y += 20; // Increment y position for next app
-
-    if (prevWinPos.x > window.innerWidth - 200) {
-        prevWinPos.x = 100; // Reset x position if it exceeds window innerWidth
-    }
-    if (prevWinPos.y > window.innerHeight - 200) {
-        prevWinPos.y = 100; // Reset y position if it exceeds window innerHeight
-    }
+    createWindow(windowProps);
 }

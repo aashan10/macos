@@ -120,7 +120,7 @@ export const Finder = () => {
                                 {(id) => {
                                     const app = AppRegistry[id];
                                     return (
-                                        <button onDblClick={() => launchApp(id)} class="flex flex-col items-center">
+                                        <button onDblClick={() => launchApp(app)} class="flex flex-col items-center">
                                             <img src={app.icon} class="h-16 w-16" alt={app.name} />
                                             <span class="text-sm text-stone-700 dark:text-stone-300 mt-2">{app.name}</span>
                                         </button>

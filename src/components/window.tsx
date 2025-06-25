@@ -1,11 +1,13 @@
-import { createMemo, createSignal, onCleanup } from "solid-js";
+import { createEffect, createMemo, createSignal, onCleanup, type JSXElement } from "solid-js";
 import type { WindowState } from "../hooks/window-manager";
 
-type WindowProps = WindowState & {
+type WindowProps = Omit<WindowState, 'children' | 'componentKey'> & {
     onClose: (id: string) => void;
     onSetProperty: <K extends keyof WindowState>(property: K, value: WindowState[K]) => void;
     onBringToFront: (id: string) => void;
     isFocused: (id: string) => boolean;
+    minimized?: boolean; // Optional prop for minimized state
+    children: JSXElement; // Optional children for the window content
 };
 
 const InteractionType = {
@@ -22,7 +24,7 @@ const InteractionType = {
 }
 
 export const Window = (props: WindowProps) => {
-    const { id, x, y, width, height, zIndex, onClose, onSetProperty, onBringToFront, children, isFocused } = props;
+    const { id, x, y, width, height, zIndex, onClose, onSetProperty, onBringToFront, isFocused, minimized, children } = props;
     const [position, setPosition] = createSignal<{ x: number, y: number }>({ x: x, y: y });
     const [size, setSize] = createSignal<{ width: number, height: number }>({ width: width, height: height });
 
@@ -35,6 +37,13 @@ export const Window = (props: WindowProps) => {
     const [initialWindowY, setInitialWindowY] = createSignal(0);
     const [initialWindowWidth, setInitialWindowWidth] = createSignal(0);
     const [initialWindowHeight, setInitialWindowHeight] = createSignal(0);
+    const [zInd, setZIndex] = createSignal(zIndex);
+
+    createEffect(() => {
+        if (interaction() === InteractionType.None) {
+            setZIndex(props.zIndex);
+        }
+    });
 
     const handleMouseDown = (e: MouseEvent, type: number) => {
         // Prevent default browser behavior like text selection during drag/resize
@@ -158,26 +167,26 @@ export const Window = (props: WindowProps) => {
     }
 
     return (
-        <div onMouseDown={() => { !isWindowFocused() && onBringToFront(id) }} class="absolute overflow-hidden window rounded-xl flex flex-col shadow-md/30 "
+        <div onMouseDown={() => { !isWindowFocused() && onBringToFront(id) }} class={`${minimized ? 'hidden' : 'absolute overflow-hidden window rounded-xl flex flex-col shadow-md/30 '}`}
             style={{
                 left: `${position().x}px`,
                 top: `${position().y}px`,
                 width: `${size().width}px`,
                 height: `${size().height}px`,
-                'z-index': zIndex,
+                'z-index': zInd(),
             }}>
             {/* Title bar - Drag Handle */}
-            <div class="p-2 flex flex-row items-center gap-5 rounded-t-xl" style={{ 'z-index': zIndex + 1 }}>
+            <div class="p-2 flex flex-row items-center gap-5 rounded-t-xl" style={{ 'z-index': zInd() + 1 }}>
                 <div class="flex gap-1">
-                    <button style={{ 'z-index': zIndex + 2 }} class={`h-3 w-3 rounded-full ${isWindowFocused() ? 'bg-red-500' : 'bg-stone-500'}`} onMouseDown={close}></button>
-                    <button style={{ 'z-index': zIndex + 2 }} class={`h-3 w-3 rounded-full ${isWindowFocused() ? 'bg-yellow-500' : 'bg-stone-500'}`} onMouseDown={() => window.dispatchEvent(new CustomEvent('minimize-window', {
+                    <button style={{ 'z-index': zInd() + 2 }} class={`h-3 w-3 rounded-full ${isWindowFocused() ? 'bg-red-500' : 'bg-stone-500'}`} onMouseDown={close}></button>
+                    <button style={{ 'z-index': zInd() + 2 }} class={`h-3 w-3 rounded-full ${isWindowFocused() ? 'bg-yellow-500' : 'bg-stone-500'}`} onMouseDown={() => window.dispatchEvent(new CustomEvent('minimize-window', {
                         detail: { id: props.id }
                     }))}></button>
-                    <button style={{ 'z-index': zIndex + 2 }} class={`h-3 w-3 rounded-full ${isWindowFocused() ? 'bg-green-500' : 'bg-stone-500'}`} onMouseDown={() => window.dispatchEvent(new CustomEvent('maximize-window', {
+                    <button style={{ 'z-index': zInd() + 2 }} class={`h-3 w-3 rounded-full ${isWindowFocused() ? 'bg-green-500' : 'bg-stone-500'}`} onMouseDown={() => window.dispatchEvent(new CustomEvent('maximize-window', {
                         detail: { id: props.id }
                     }))}></button>
                 </div>
-                <div style={{ 'z-index': zIndex + 5 }} onDblClick={() => {
+                <div style={{ 'z-index': zInd() + 5 }} onDblClick={() => {
 
                     window.dispatchEvent(new CustomEvent('maximize-window', {
                         detail: { id: props.id }
@@ -194,16 +203,16 @@ export const Window = (props: WindowProps) => {
             {/* Resize Handles (Increased size for easier interaction and better visibility) */}
             <div class="absolute top-0 left-0 w-3 h-3 cursor-nwse-resize"
                 onMouseDown={(e) => handleMouseDown(e, InteractionType.ResizingNW)}
-                style={{ 'z-index': zIndex + 1 }} />
+                style={{ 'z-index': zInd() + 1 }} />
             <div class="absolute top-0 right-0 w-3 h-3 cursor-nesw-resize"
                 onMouseDown={(e) => handleMouseDown(e, InteractionType.ResizingNE)}
-                style={{ 'z-index': zIndex + 1 }} />
+                style={{ 'z-index': zInd() + 1 }} />
             <div class="absolute bottom-0 left-0 w-3 h-3 cursor-nesw-resize"
                 onMouseDown={(e) => handleMouseDown(e, InteractionType.ResizingSW)}
-                style={{ 'z-index': zIndex + 1 }} />
+                style={{ 'z-index': zInd() + 1 }} />
             <div class="absolute bottom-0 right-0 w-3 h-3 cursor-nwse-resize"
                 onMouseDown={(e) => handleMouseDown(e, InteractionType.ResizingSE)}
-                style={{ 'z-index': zIndex + 1 }} />
+                style={{ 'z-index': zInd() + 1 }} />
             <div class="absolute bottom-0 left-3 right-3 h-2 cursor-ns-resize" // Adjusted left/right for corner handles
                 onMouseDown={(e) => handleMouseDown(e, InteractionType.ResizingS)} />
             <div class="absolute right-0 top-3 bottom-3 w-2 cursor-ew-resize" // Adjusted top/bottom for corner handles

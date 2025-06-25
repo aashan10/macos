@@ -28,12 +28,12 @@ export const Dock = () => {
     }
 
     const dockItems: Array<AppInfo & { onClick: () => void; isOpen?: boolean } | string> = [
-        { ...AppRegistry['Finder'], onClick: () => launchApp('Finder') },
-        { ...AppRegistry['Safari'], onClick: () => launchApp('Safari') },
-        { ...AppRegistry['Preferences'], onClick: () => launchApp('Preferences') },
+        { ...AppRegistry['Finder'], onClick: () => launchApp(AppRegistry['Finder']) },
+        { ...AppRegistry['Safari'], onClick: () => launchApp(AppRegistry['Safari']) },
+        { ...AppRegistry['Preferences'], onClick: () => launchApp(AppRegistry['Preferences']) },
         'divider',
         // { ...AppRegistry['Siri'], onClick: () => launchApp('Siri') },
-        { ...AppRegistry['Trash'], onClick: () => launchApp('Trash') },
+        { ...AppRegistry['Trash'], onClick: () => launchApp(AppRegistry['Trash']) },
     ];
 
 

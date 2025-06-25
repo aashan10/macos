@@ -1,4 +1,4 @@
-import { createMemo, createSignal, onCleanup } from "solid-js";
+import { createMemo, createSignal, onCleanup, type JSXElement } from "solid-js";
 import { createStore } from "solid-js/store";
 
 type WindowState = {
@@ -10,9 +10,10 @@ type WindowState = {
     width: number;
     height: number;
     zIndex: number;
-    children?: any;
+    componentKey: string;
     maximized?: boolean;
     minimized?: boolean;
+    parentApp?: string;
 };
 
 
@@ -20,31 +21,52 @@ const [windows, setWindows] = createStore<Record<string, WindowState>>({});
 const [focusedWindow, setFocusedWindow] = createSignal<string | null>(null);
 const [nextZIndex, setNextZIndex] = createSignal(100);
 
+const [windowComponentFunctions, setWindowComponentFunctions] = createSignal<Record<string, () => JSXElement>>({});
+
 export const useWindowManager = () => {
 
-    const createWindow = (title: string, x: number, y: number, width: number, height: number, children?: any, icon?: string) => {
+    type CreateWindowProps = {
+        title: string,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
+        children?: JSXElement,
+        icon?: string,
+        parentApp?: string
+    };
+
+    const createWindow = (props: CreateWindowProps) => {
+        const { title, x, y, width, height, children, icon, parentApp } = props;
+
         const id = `window-${Date.now()}`;
+        const componentKey = `component-${id}`;
 
-        setWindows(prev => {
+        const componentFunc = () => children;
 
-            return {
-                ...prev,
-                [id]: {
-                    id,
-                    icon,
-                    title,
-                    x,
-                    y,
-                    width,
-                    height,
-                    zIndex: getNextZIndex(),
-                    children: children || null,
-                    maximized: false, // Default to not maximized
-                    minimized: false, // Default to not minimized
-                }
-            };
+        setWindowComponentFunctions(prev => ({
+            ...prev,
+            [componentKey]: componentFunc
+        }));
+
+        setWindows(id, {
+            id,
+            icon,
+            title,
+            x,
+            y,
+            width,
+            height,
+            zIndex: getNextZIndex(),
+            minimized: false,
+            maximized: false,
+            parentApp: parentApp,
+            componentKey: componentKey
         });
+
         setFocusedWindow(id);
+
+        return id;
     }
 
     const getNextZIndex = () => {
@@ -54,43 +76,39 @@ export const useWindowManager = () => {
     }
 
     const closeWindow = (id: string) => {
-        // @ts-ignore 
-        setWindows(id, undefined);
+        const win = windows[id];
+
+        if (win) {
+            setWindowComponentFunctions(prev => {
+                const next = { ...prev };
+                delete next[win.componentKey];
+                return next;
+            });
+            setWindows(id, undefined!);
+        }
 
         if (focusedWindow() === id) {
-            setFocusedWindow(null); // Clear focused window if the closed window was focused
+            setFocusedWindow(null);
         }
     }
 
     const setWindowProperty = <K extends keyof WindowState>(id: string, property: K, value: WindowState[K]) => {
 
         let windowList = windows;
-        if (!windowList[id]) return; // If the window doesn't exist, do nothing 
+        if (!windowList[id]) return;
 
-        const window = windowList[id];
-        const existingProperty = window[property];
-        if (existingProperty === value) return; // No change needed
-
-        windowList = { ...windowList, [id]: { ...window, [property]: value, maximized: false, minimized: false } };
-
-        setWindows(windowList);
+        setWindows(id, property, value);
     }
 
     const focusWindow = (id: string) => {
 
+        console.log("Focusing window", id);
         const windowList = windows;
-        if (!windowList[id]) return; // If the window doesn't exist, do nothing
+        if (!windowList[id]) return;
 
-        setWindows(prev => {
-            return {
-                ...prev, [id]: {
-                    ...prev[id],
-                    zIndex: getNextZIndex(),
-                    minimized: false, // Ensure the window is not minimized when focused
-                    maximized: false, // Ensure the window is not maximized when focused
-                }
-            };
-        });
+        setWindows(id, 'zIndex', getNextZIndex());
+        setWindows(id, 'minimized', false);
+        setWindows(id, 'maximized', false);
 
         setFocusedWindow(id);
     }
@@ -101,10 +119,10 @@ export const useWindowManager = () => {
 
     const activeWindow = createMemo(() => {
         const fcWindow = focusedWindow();
-        if (!fcWindow) return null; // If no window is focused, return null
+        if (!fcWindow) return null;
 
         const windowsList = windows;
-        if (!windowsList[fcWindow]) return null; // If the focused window doesn't exist, return null 
+        if (!windowsList[fcWindow]) return null;
 
         return windowsList[fcWindow];
     });
@@ -112,47 +130,26 @@ export const useWindowManager = () => {
     const onMinimizeWindow = (event: CustomEvent) => {
         const id = event.detail.id;
 
-        setWindows(prev => {
-            return {
-                ...prev,
-                [id]: {
-                    ...prev[id],
-                    minimized: true,
-                    maximized: false, // Ensure maximized is false when minimized
-                }
-            }
-        })
+        if (!windows[id]) return;
+        setWindows(id, 'minimized', true);
+        setWindows(id, 'maximized', false);
     }
 
     const onMaximizeWindow = (event: CustomEvent) => {
         const id = event.detail.id;
 
-        setWindows(prev => {
-            return {
-                ...prev,
-                [id]: {
-                    ...prev[id],
-                    maximized: !prev[id].maximized, // Toggle maximized state
-                    minimized: false, // Ensure minimized is false when maximized
-                }
-            }
-        })
+        if (!windows[id]) return;
+
+        setWindows(id, 'minimized', false);
+        setWindows(id, 'maximized', !windows[id].maximized);
     }
 
     const onRestoreWindow = (event: CustomEvent) => {
         const id = event.detail.id;
 
-
-        setWindows(prev => {
-            return {
-                ...prev,
-                [id]: {
-                    ...prev[id],
-                    maximized: false, // Ensure maximized is false when restored
-                    minimized: false, // Ensure minimized is false when restored
-                }
-            }
-        })
+        if (!windows[id]) return;
+        setWindows(id, 'minimized', false);
+        setWindows(id, 'maximized', false);
     }
 
     // @ts-ignore
@@ -216,6 +213,7 @@ export const useWindowManager = () => {
     const windowsArray = createMemo(() => Object.values(windows));
 
     return {
+        windowComponentFunctions,
         windows,
         windowsArray,
         createWindow,
