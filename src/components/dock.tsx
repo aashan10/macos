@@ -1,67 +1,83 @@
-import { For, Show, createMemo, } from "solid-js";
-import { useWindowManager, type WindowState } from "../hooks/window-manager";
+import { createMemo, For, Show, } from "solid-js";
+import { useWindowManager, type WindowState, } from "../hooks/window-manager";
 import { Tooltip } from "./utils/tooltip";
-import { AppRegistry, getAppIcon, launchApp, type AppInfo } from "./apps/registry";
+import { AppRegistry, launchApp, type AppInfo } from "./apps/registry";
 
+
+type DockItem = {
+    name: string;
+    icon: string;
+    onClick: () => void;
+    highlighted?: boolean;
+} | 'divider';
+
+const getDockItemForApp = (app: AppInfo) => {
+    return {
+        name: app.name,
+        icon: app.icon,
+        onClick: () => launchApp(app),
+        highlighted: false
+    };
+}
+
+const getDockItemForWindow = (win: WindowState, focusWindow: (id: string) => void) => {
+    return {
+        name: win.title,
+        icon: win.icon || AppRegistry[win.title]?.icon || './apps/default-app.svg',
+        onClick: () => focusWindow(win.id),
+        highlighted: true
+    }
+}
+
+const mergeDockItems = (apps: DockItem[], windows: DockItem[]) => {
+    const result = new Map<string, DockItem>();
+
+    for (const item of apps) {
+        if (typeof item === 'string') {
+            result.set(item, item);
+        } else {
+            result.set(item.name, item);
+        }
+    }
+
+    for (const item of windows) {
+        if (typeof item === 'string') {
+            result.set(item, item);
+        } else {
+            result.set(item.name, item);
+        }
+    }
+
+    return Array.from(result.values());
+
+}
 
 export const Dock = () => {
 
-    const { windows, focusWindow, createWindow, inactiveWindows } = useWindowManager();
-
-    const findWindowByName = (name: string) => {
-        const windowList = windows;
-        for (const win of Object.values(windowList)) {
-            if (win.title === name) {
-                return win;
-            }
-        }
-        return null;
-    }
-
-    const createOrFocusExistingWindow = (name: string, props: WindowState) => {
-        const existingWindow = findWindowByName(name);
-        if (existingWindow) {
-            focusWindow(existingWindow.id);
-        } else {
-            createWindow(name, props.x, props.y, props.width, props.height, props.children);
-        }
-    }
-
-    const dockItems: Array<AppInfo & { onClick: () => void; isOpen?: boolean } | string> = [
-        { ...AppRegistry['Finder'], onClick: () => launchApp(AppRegistry['Finder']) },
-        { ...AppRegistry['Safari'], onClick: () => launchApp(AppRegistry['Safari']) },
-        { ...AppRegistry['Preferences'], onClick: () => launchApp(AppRegistry['Preferences']) },
-        'divider',
-        // { ...AppRegistry['Siri'], onClick: () => launchApp('Siri') },
-        { ...AppRegistry['Trash'], onClick: () => launchApp(AppRegistry['Trash']) },
-    ];
+    const { windows, focusWindow } = useWindowManager();
 
 
-    const getDockItems = createMemo(() => {
-        let items = [...dockItems];
+    const dockItems = createMemo(() => {
+        const staticDockItems: DockItem[] = [
+            getDockItemForApp(AppRegistry['Finder']),
+            getDockItemForApp(AppRegistry['Safari']),
+            getDockItemForApp(AppRegistry['Preferences']),
+            'divider',
+            // getDockItemForApp(AppRegistry['Siri']),
+            getDockItemForApp(AppRegistry['Trash']),
+        ];
 
-        const openButInactive: Record<string, WindowState> = inactiveWindows();
+        const dynamicDockItems: DockItem[] = Object.values(windows).map(win => getDockItemForWindow(win, focusWindow));
 
-        for (const [_, win] of Object.entries(openButInactive)) {
-            items.push({
-                name: win.title,
-                icon: getAppIcon(win.title),
-                onClick: () => createOrFocusExistingWindow(win.title, win),
-                isOpen: true,
-                component: win.children
-            });
-        }
-
-
-
-        return items;
+        return mergeDockItems(staticDockItems, dynamicDockItems);
     });
+
 
 
     return (
         <div class="dock fixed bottom-2 w-full h-16 z-[10000] flex flex-row items-center justify-center">
             <div class="h-16 bg-stone-200/50 dark:bg-stone-900/50 gap-3 backdrop-blur-2xl  rounded-2xl p-4 shadow-lg z-[10000] flex flex-row items-center">
-                <For each={getDockItems()}>
+                <For each={dockItems()}>
                     {(item) => typeof item === 'string' ? (
                         <span class="h-10 w-2 border-r border-stone-200/50 dark:border-stone-900/50 mr-3" />
                     ) : (
@@ -70,8 +86,8 @@ export const Dock = () => {
                                 onClick={item.onClick}
                                 style={{ 'background-image': `url('${item.icon}')` }}
                             />
-                            <Show when={item.isOpen || false}>
-                                <span class="absolute bottom-0 left-0 w-full h-1 bg-blue-500 rounded-b-lg" />
+                            <Show when={item.highlighted || false}>
+                                <span class="absolute -bottom-2 left-[calc(50%-2px)] w-[4px] h-1 bg-blue-500 rounded-full" />
                             </Show>
                         </Tooltip>
 

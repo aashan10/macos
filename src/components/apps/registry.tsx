@@ -1,9 +1,10 @@
-import { createMemo, type JSXElement } from "solid-js";
+import { type JSXElement } from "solid-js";
 import { Finder } from "./finder";
 import { Safari } from "./safari";
 import { Preferences } from "../preferences";
 import { useWindowManager } from "../../hooks/window-manager";
 import { SinglePanelLayout } from "../layouts/single-panel";
+import { TwoZeroFourEight } from "./2048";
 
 export type AppInfo = {
     name: string;
@@ -17,10 +18,6 @@ export type AppInfo = {
         y?: number;
     }
 }
-
-const _2048 = () => createMemo(() => {
-    return <iframe src="https://funhtml5games.com?embed=2048bit" style="width:530px;height:690px;border:none;" frameborder="0" scrolling="no"></iframe>;
-});
 
 export const AppRegistry: Record<string, AppInfo> = {
     "Finder": {
@@ -57,7 +54,7 @@ export const AppRegistry: Record<string, AppInfo> = {
         name: "2048",
         icon: "./apps/2048.svg",
         description: "A simple 2048 game.",
-        component: <SinglePanelLayout content={[_2048()]} />,
+        component: <SinglePanelLayout content={<TwoZeroFourEight />} />,
         windowConfig: {
             height: 800,
             width: 565

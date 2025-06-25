@@ -2,9 +2,10 @@ import { createMemo, For } from "solid-js";
 import { useWindowManager } from "../hooks/window-manager"
 import { IoLogoApple } from "solid-icons/io";
 import { usePreferences } from "../hooks/preferences";
-import { Preferences } from "./preferences";
 import { ThemeSwitcher } from "./theme-switcher";
 import { ToolbarItem, type ToolbarItemProps } from "./toolbar/item";
+import { SinglePanelLayout } from "./layouts/single-panel";
+import { AppRegistry, launchApp } from "./apps/registry";
 
 export const Toolbar = () => {
     const { closeWindow, createWindow, activeWindow } = useWindowManager();
@@ -21,11 +22,18 @@ export const Toolbar = () => {
             children: [
                 {
                     name: 'About This Mac',
-                    onClick: () => createWindow("About This Mac", 400, 100, 600, 400, []),
+                    onClick: () => createWindow({
+                        title: "About This Mac",
+                        width: 400,
+                        height: 400,
+                        x: 400,
+                        y: 400,
+                        children: [<SinglePanelLayout content={[]} />]
+                    }),
                 },
                 {
                     name: 'System Preferences',
-                    onClick: () => createWindow("System Preferences", 400, 100, 900, 800, [<Preferences />]),
+                    onClick: () => launchApp(AppRegistry['Preferences']),
                 },
                 {
                     name: 'Recent Items',
@@ -64,10 +72,6 @@ export const Toolbar = () => {
             items.push({
                 name: 'File',
                 children: [
-                    {
-                        name: 'New Window',
-                        onClick: () => createWindow(active.title, 400, 100, 800, 600, active.children),
-                    },
                     {
                         name: 'New Tab',
                         onClick: () => { },
